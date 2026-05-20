@@ -18,7 +18,12 @@ app = FastAPI(title="ARNUG Traffic Management System", version="4.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:3000",
+        "https://arnug.in",
+        "https://www.arnug.in",
+        "https://jocular-fox-3563c6.netlify.app"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -28,7 +33,6 @@ SECRET_KEY = "arnug_secret_key_2024"
 ALGORITHM = "HS256"
 TOMTOM_KEY = os.getenv("TOMTOM_API_KEY")
 
-# Supabase config
 SUPABASE_URL = os.getenv("SUPABASE_URL", "https://xqyxgirouogrshubslkg.supabase.co")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
 
@@ -75,7 +79,6 @@ USERS_DB = {
     "officer1": {"username": "officer1", "password": "officer2024", "role": "officer", "name": "Officer Sharma", "authorized": True, "zone": "Whitefield"}
 }
 
-# ══ TOMTOM FUNCTIONS ══
 def get_tomtom_traffic(lat, lng):
     try:
         url = "https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/10/json"
@@ -128,7 +131,6 @@ def get_tomtom_incidents(lat, lng):
         print(f"TomTom incidents error: {e}")
     return []
 
-# ══ AUTO ALERT SYSTEM ══
 def generate_alert_message(area, score, severity, incidents):
     if severity == 'critical':
         if incidents:
@@ -146,14 +148,12 @@ def push_alert_to_supabase(area, alert_type, message):
             "Content-Type": "application/json",
             "Prefer": "return=minimal"
         }
-        # Pehle purane alerts deactivate karo same area ke
         requests.patch(
             f"{SUPABASE_URL}/rest/v1/alerts?area=eq.{area}&is_active=eq.true",
             json={"is_active": False},
             headers=headers,
             timeout=5
         )
-        # Naya alert insert karo
         payload = {
             "type": alert_type,
             "area": area,
@@ -179,30 +179,24 @@ def auto_alert_worker():
         try:
             print(f"[ALERT] Checking traffic at {datetime.now().strftime('%H:%M:%S')}...")
             critical_areas = []
-
             for node, (lat, lng) in NODES.items():
                 traffic = get_tomtom_traffic(lat, lng)
                 if traffic:
                     score = traffic["congestion_score"]
                     severity = traffic["severity"]
-
                     if severity in ['critical', 'warning']:
                         incidents = get_tomtom_incidents(lat, lng)
                         message = generate_alert_message(node, score, severity, incidents)
                         push_alert_to_supabase(node, severity, message)
                         critical_areas.append(f"{node}({score}%)")
-
             if critical_areas:
                 print(f"[ALERT] ⚠️ Alerts generated for: {', '.join(critical_areas)}")
             else:
                 print("[ALERT] ✅ No critical zones detected")
-
         except Exception as e:
             print(f"[ALERT] Worker error: {e}")
+        time.sleep(300)
 
-        time.sleep(300)  # 5 minutes
-
-# ══ ROUTE FUNCTIONS ══
 def get_real_congestion(node):
     lat, lng = NODES[node]
     traffic = get_tomtom_traffic(lat, lng)
@@ -257,7 +251,6 @@ def create_token(data):
     to_encode.update({"exp": datetime.utcnow() + timedelta(hours=2)})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-# ══ STARTUP ══
 @app.on_event("startup")
 async def startup_event():
     print("[ARNUG] Starting Auto Alert System...")
@@ -265,7 +258,6 @@ async def startup_event():
     alert_thread.start()
     print("[ARNUG] Auto Alert System running in background!")
 
-# ══ API ROUTES ══
 @app.get("/")
 def root():
     return {"message": "ARNUG API v4.0 — Auto Alert + TomTom", "status": "running"}
@@ -310,7 +302,6 @@ def get_predictions():
 
 @app.get("/api/alerts/live")
 def get_live_alerts():
-    """Frontend ke liye latest alerts"""
     results = []
     for node, (lat, lng) in NODES.items():
         traffic = get_tomtom_traffic(lat, lng)
