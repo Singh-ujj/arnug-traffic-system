@@ -272,18 +272,23 @@ def get_stats():
     total_speed = 0
     congestion_zones = 0
     count = 0
+
     for node, (lat, lng) in NODES.items():
         traffic = get_tomtom_traffic(lat, lng)
         if traffic:
             score = traffic["congestion_score"]
             speed = traffic["current_speed"]
+            free_flow = traffic.get("free_flow_speed", 60)
             total_speed += speed
             count += 1
-            estimated_vehicles = int(score * 28 + speed * 2)
+            estimated_vehicles = int((free_flow - speed + 10) * 15 + score * 10)
+            estimated_vehicles = max(50, estimated_vehicles)
             total_vehicles += estimated_vehicles
             if traffic["severity"] in ['critical', 'warning']:
                 congestion_zones += 1
+
     avg_speed = round(total_speed / count, 1) if count > 0 else 35
+
     return {
         "vehicles_detected": total_vehicles,
         "avg_speed": avg_speed,
