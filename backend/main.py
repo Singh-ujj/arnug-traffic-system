@@ -73,10 +73,6 @@ ROADS = [
 
 ROUTE_LOAD = defaultdict(int)
 
-USERS_DB = {
-    "commissioner": {"username": "commissioner", "password": "arnug2024", "role": "commissioner", "name": "Police Commissioner", "authorized": True},
-}
-
 def supabase_headers():
     return {
         "apikey": SUPABASE_KEY,
@@ -101,7 +97,14 @@ def get_tomtom_traffic(lat, lng):
             else:
                 congestion_score = 50
             severity = 'critical' if congestion_score >= 70 else 'warning' if congestion_score >= 40 else 'low'
-            return {"current_speed": current_speed, "free_flow_speed": free_flow_speed, "congestion_score": congestion_score, "severity": severity, "confidence": confidence, "source": "TomTom Live"}
+            return {
+                "current_speed": current_speed,
+                "free_flow_speed": free_flow_speed,
+                "congestion_score": congestion_score,
+                "severity": severity,
+                "confidence": confidence,
+                "source": "TomTom Live"
+            }
     except Exception as e:
         print(f"TomTom error: {e}")
     return None
@@ -158,6 +161,7 @@ def push_alert_to_supabase(area, alert_type, message):
             json={"type": alert_type, "area": area, "message": message, "is_active": True},
             headers=headers, timeout=5
         )
+        print(f"[ALERT] ✅ Pushed: {area} — {alert_type}")
     except Exception as e:
         print(f"[ALERT] Error: {e}")
 
@@ -165,6 +169,7 @@ def auto_alert_worker():
     print("[ARNUG] Auto Alert System started!")
     while True:
         try:
+            print(f"[ALERT] Checking at {datetime.now().strftime('%H:%M:%S')}...")
             for node, (lat, lng) in NODES.items():
                 traffic = get_tomtom_traffic(lat, lng)
                 if traffic and traffic["severity"] in ['critical', 'warning']:
@@ -241,7 +246,12 @@ def root():
 
 @app.get("/health")
 def health():
-    return {"status": "healthy", "timestamp": datetime.now().isoformat(), "tomtom": "connected" if TOMTOM_KEY else "missing"}
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "tomtom": "connected" if TOMTOM_KEY else "missing",
+        "auto_alerts": "active"
+    }
 
 @app.get("/api/stats")
 def get_stats():
@@ -262,19 +272,28 @@ def get_stats():
             if traffic["severity"] in ['critical', 'warning']:
                 congestion_zones += 1
     avg_speed = round(total_speed / count, 1) if count > 0 else 35
-    return {"vehicles_detected": total_vehicles, "avg_speed": avg_speed, "congestion_zones": congestion_zones, "ai_accuracy": 94.7, "timestamp": datetime.now().isoformat()}
+    return {
+        "vehicles_detected": total_vehicles,
+        "avg_speed": avg_speed,
+        "congestion_zones": congestion_zones,
+        "ai_accuracy": 94.7,
+        "timestamp": datetime.now().isoformat()
+    }
 
 @app.post("/api/gov/login")
 def gov_login(request: dict):
     username = request.get("username")
     password = request.get("password")
 
-    # Pehle hardcoded commissioner check karo
+    # Commissioner hardcoded check
     if username == "commissioner" and password == "arnug2024":
         token = create_token({"sub": "commissioner", "role": "commissioner"})
-        return {"access_token": token, "token_type": "bearer", "user": {"username": "commissioner", "name": "Police Commissioner", "role": "commissioner"}}
+        return {
+            "access_token": token, "token_type": "bearer",
+            "user": {"username": "commissioner", "name": "Police Commissioner", "role": "commissioner", "zone": ""}
+        }
 
-    # Supabase se officer check karo
+    # Supabase se officer check
     try:
         res = requests.get(
             f"{SUPABASE_URL}/rest/v1/gov_users?username=eq.{username}&password=eq.{password}&authorized=eq.true",
@@ -284,8 +303,20 @@ def gov_login(request: dict):
             users = res.json()
             if users:
                 user = users[0]
-                token = create_token({"sub": user["username"], "role": user["role"], "zone": user.get("zone", "")})
-                return {"access_token": token, "token_type": "bearer", "user": {"username": user["username"], "name": user["name"], "role": user["role"], "zone": user.get("zone", "")}}
+                token = create_token({
+                    "sub": user["username"],
+                    "role": user["role"],
+                    "zone": user.get("zone", "")
+                })
+                return {
+                    "access_token": token, "token_type": "bearer",
+                    "user": {
+                        "username": user["username"],
+                        "name": user["name"],
+                        "role": user["role"],
+                        "zone": user.get("zone", "")
+                    }
+                }
     except Exception as e:
         print(f"Supabase login error: {e}")
 
@@ -293,7 +324,6 @@ def gov_login(request: dict):
 
 @app.post("/api/officer/create")
 def create_officer(data: dict):
-    # Sirf commissioner create kar sakta hai
     if data.get("created_by") != "commissioner":
         raise HTTPException(status_code=403, detail="Only commissioner can create officers")
     try:
@@ -315,7 +345,7 @@ def create_officer(data: dict):
         if res.status_code in [200, 201]:
             return {"success": True, "message": f"Officer {data.get('name')} created successfully!"}
         else:
-            raise HTTPException(status_code=400, detail=f"Failed to create officer: {res.text}")
+            raise HTTPException(status_code=400, detail=f"Failed: {res.text}")
     except HTTPException:
         raise
     except Exception as e:
@@ -325,13 +355,13 @@ def create_officer(data: dict):
 def get_officers():
     try:
         res = requests.get(
-            f"{SUPABASE_URL}/rest/v1/gov_users?role=eq.officer&select=id,name,username,zone,status,created_at",
+            f"{SUPABASE_URL}/rest/v1/gov_users?role=eq.officer&select=id,name,username,zone,created_at,created_by",
             headers=supabase_headers(), timeout=5
         )
         if res.status_code == 200:
             return {"officers": res.json()}
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Officer list error: {e}")
     return {"officers": []}
 
 @app.get("/api/traffic/live")
@@ -343,7 +373,12 @@ def get_live_traffic():
         if traffic:
             results.append({"area": node, "lat": lat, "lng": lng, **traffic, "incidents": incidents})
         else:
-            results.append({"area": node, "lat": lat, "lng": lng, "congestion_score": 50, "current_speed": 30, "free_flow_speed": 50, "severity": "warning", "source": "Estimated", "incidents": []})
+            results.append({
+                "area": node, "lat": lat, "lng": lng,
+                "congestion_score": 50, "current_speed": 30,
+                "free_flow_speed": 50, "severity": "warning",
+                "source": "Estimated", "incidents": []
+            })
     results.sort(key=lambda x: x["congestion_score"], reverse=True)
     return {"data": results, "timestamp": datetime.now().isoformat()}
 
@@ -354,28 +389,30 @@ def get_predictions():
         traffic = get_tomtom_traffic(lat, lng)
         score = traffic["congestion_score"] if traffic else 50
         severity = 'critical' if score >= 70 else 'warning' if score >= 40 else 'low'
-        results.append({"area": node, "lat": lat, "lng": lng, "predicted_score": score, "severity": severity, "source": traffic["source"] if traffic else "Estimated"})
+        results.append({
+            "area": node, "lat": lat, "lng": lng,
+            "predicted_score": score, "severity": severity,
+            "source": traffic["source"] if traffic else "Estimated"
+        })
     results.sort(key=lambda x: x["predicted_score"], reverse=True)
     return {"predictions": results[:5], "timestamp": datetime.now().isoformat(), "prediction_window": "15 minutes"}
 
 @app.get("/api/traffic/zone/{zone}")
 def get_zone_traffic(zone: str):
-    zone_map = {
-        'Whitefield': 'Whitefield', 'Marathahalli': 'Marathahalli',
-        'Bellandur': 'Bellandur', 'Silk Board': 'Silk Board',
-        'Electronic City': 'Electronic City', 'HSR Layout': 'HSR Layout',
-        'Koramangala': 'Koramangala', 'Outer Ring Road': 'Outer Ring Road',
-        'Hebbal': 'Hebbal', 'Marathahalli IT': 'Marathahalli IT'
-    }
-    node = zone_map.get(zone)
-    if not node or node not in NODES:
+    node = zone
+    if node not in NODES:
         raise HTTPException(status_code=404, detail="Zone not found")
     lat, lng = NODES[node]
     traffic = get_tomtom_traffic(lat, lng)
     incidents = get_tomtom_incidents(lat, lng)
     if traffic:
         return {"area": node, "lat": lat, "lng": lng, **traffic, "incidents": incidents}
-    return {"area": node, "lat": lat, "lng": lng, "congestion_score": 50, "current_speed": 30, "free_flow_speed": 50, "severity": "warning", "source": "Estimated", "incidents": []}
+    return {
+        "area": node, "lat": lat, "lng": lng,
+        "congestion_score": 50, "current_speed": 30,
+        "free_flow_speed": 50, "severity": "warning",
+        "source": "Estimated", "incidents": []
+    }
 
 @app.get("/api/alerts/live")
 def get_live_alerts():
@@ -385,7 +422,15 @@ def get_live_alerts():
         if traffic and traffic["severity"] in ['critical', 'warning']:
             incidents = get_tomtom_incidents(lat, lng)
             message = generate_alert_message(node, traffic["congestion_score"], traffic["severity"], incidents)
-            results.append({"area": node, "type": traffic["severity"], "message": message, "congestion_score": traffic["congestion_score"], "current_speed": traffic["current_speed"], "time": "Just now", "incidents": incidents})
+            results.append({
+                "area": node,
+                "type": traffic["severity"],
+                "message": message,
+                "congestion_score": traffic["congestion_score"],
+                "current_speed": traffic["current_speed"],
+                "time": "Just now",
+                "incidents": incidents
+            })
     results.sort(key=lambda x: x["congestion_score"], reverse=True)
     return {"alerts": results, "count": len(results), "timestamp": datetime.now().isoformat()}
 
@@ -423,7 +468,10 @@ def get_weather():
 @app.post("/api/citizen/auth")
 def citizen_auth(data: dict):
     token = create_token({"sub": data.get("email"), "role": "citizen"})
-    return {"access_token": token, "token_type": "bearer", "user": {"name": data.get("name"), "email": data.get("email"), "role": "citizen"}}
+    return {
+        "access_token": token, "token_type": "bearer",
+        "user": {"name": data.get("name"), "email": data.get("email"), "role": "citizen"}
+    }
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
