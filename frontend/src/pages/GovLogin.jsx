@@ -26,12 +26,18 @@ function GovLogin({ setUser, setUserType }) {
         return
       }
 
-      const user = { username: data.username, name: data.name, role: data.role }
+      const user = { username: data.username, name: data.name, role: data.role, zone: data.zone }
       localStorage.setItem('arnug_user', JSON.stringify(user))
       localStorage.setItem('arnug_type', 'government')
       setUser(user)
       setUserType('government')
-      navigate('/gov-dashboard')
+
+      // Role ke hisaab se route karo
+      if (data.role === 'commissioner') {
+        navigate('/gov-dashboard')
+      } else {
+        navigate('/officer-dashboard')
+      }
     } catch (err) {
       setError('CONNECTION ERROR — TRY AGAIN')
       setLoading(false)
@@ -193,7 +199,7 @@ function GovLogin({ setUser, setUserType }) {
           fontSize: '9px', color: '#2E7D32',
           letterSpacing: '1px', textAlign: 'center'
         }}>
-          DEMO: ID = commissioner | CODE = arnug2024
+          COMMISSIONER: commissioner / arnug2024
         </div>
       </div>
     </div>

@@ -15,7 +15,7 @@ function RoutesFinder() {
   }
 
   useEffect(() => {
-    fetch('http://localhost:8000/api/areas')
+    fetch(`${import.meta.env.VITE_API_URL}/api/areas`)
       .then(r => r.json())
       .then(d => setAreas(d.areas))
       .catch(() => setAreas([
@@ -34,7 +34,7 @@ function RoutesFinder() {
     setLoading(true)
     setRoutes([])
     try {
-      const res = await fetch('http://localhost:8000/api/routes/suggest', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/routes/suggest`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ origin, destination })
@@ -68,15 +68,12 @@ function RoutesFinder() {
         🛣️ AI ROUTE FINDER — A* ALGORITHM + TOMTOM LIVE TRAFFIC
       </div>
 
-      {/* Route Input */}
       <div style={{
         background: colors.card,
         border: `1px solid ${colors.borderBright}`,
         padding: '20px', marginBottom: '20px'
       }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '16px', alignItems: 'end' }}>
-
-          {/* Origin */}
           <div>
             <div style={{
               fontFamily: 'Share Tech Mono, monospace',
@@ -89,7 +86,6 @@ function RoutesFinder() {
             </select>
           </div>
 
-          {/* Destination */}
           <div>
             <div style={{
               fontFamily: 'Share Tech Mono, monospace',
@@ -102,7 +98,6 @@ function RoutesFinder() {
             </select>
           </div>
 
-          {/* Find Button */}
           <button onClick={findRoutes} disabled={loading || !origin || !destination} style={{
             padding: '10px 24px',
             background: loading ? 'rgba(46,204,64,0.1)' : 'rgba(46,204,64,0.2)',
@@ -117,7 +112,6 @@ function RoutesFinder() {
           </button>
         </div>
 
-        {/* Current Time Info */}
         <div style={{
           marginTop: '12px',
           fontFamily: 'Share Tech Mono, monospace',
@@ -130,7 +124,6 @@ function RoutesFinder() {
         </div>
       </div>
 
-      {/* Loading */}
       {loading && (
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -148,7 +141,6 @@ function RoutesFinder() {
         </div>
       )}
 
-      {/* Routes Result */}
       {routes.length > 0 && (
         <div>
           <div style={{
@@ -167,7 +159,6 @@ function RoutesFinder() {
               padding: '20px', marginBottom: '16px',
               position: 'relative'
             }}>
-              {/* Best Route Badge */}
               {i === 0 && (
                 <div style={{
                   position: 'absolute', top: '12px', right: '12px',
@@ -180,7 +171,6 @@ function RoutesFinder() {
                 }}>⭐ RECOMMENDED</div>
               )}
 
-              {/* Route Name */}
               <div style={{
                 fontFamily: 'Orbitron, monospace',
                 fontSize: '14px', fontWeight: '700',
@@ -188,7 +178,6 @@ function RoutesFinder() {
                 marginBottom: '12px'
               }}>#{i+1} {route.name}</div>
 
-              {/* Stats */}
               <div style={{
                 display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
                 gap: '12px', marginBottom: '16px'
@@ -218,15 +207,12 @@ function RoutesFinder() {
                 ))}
               </div>
 
-              {/* Path */}
               <div style={{
                 fontFamily: 'Share Tech Mono, monospace',
                 fontSize: '10px', color: colors.textDim,
                 letterSpacing: '1px', marginBottom: '8px'
               }}>🗺️ ROUTE PATH:</div>
-              <div style={{
-                display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center'
-              }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
                 {route.via.split(' → ').map((stop, k, arr) => (
                   <React.Fragment key={k}>
                     <div style={{
@@ -261,7 +247,6 @@ function RoutesFinder() {
         </div>
       )}
 
-      {/* No routes */}
       {!loading && routes.length === 0 && origin && destination && (
         <div style={{
           textAlign: 'center', padding: '40px',

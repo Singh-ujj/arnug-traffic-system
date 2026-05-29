@@ -20,9 +20,11 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
+        "http://localhost:5173",
         "https://arnug.in",
         "https://www.arnug.in",
-        "https://jocular-fox-3563c6.netlify.app"
+        "https://jocular-fox-3563c6.netlify.app",
+        "https://arnug-traffic.netlify.app"
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -284,16 +286,12 @@ def get_stats():
 def gov_login(request: dict):
     username = request.get("username")
     password = request.get("password")
-
-    # Commissioner hardcoded check
     if username == "commissioner" and password == "arnug2024":
         token = create_token({"sub": "commissioner", "role": "commissioner"})
         return {
             "access_token": token, "token_type": "bearer",
             "user": {"username": "commissioner", "name": "Police Commissioner", "role": "commissioner", "zone": ""}
         }
-
-    # Supabase se officer check
     try:
         res = requests.get(
             f"{SUPABASE_URL}/rest/v1/gov_users?username=eq.{username}&password=eq.{password}&authorized=eq.true",
@@ -319,7 +317,6 @@ def gov_login(request: dict):
                 }
     except Exception as e:
         print(f"Supabase login error: {e}")
-
     raise HTTPException(status_code=401, detail="Invalid credentials")
 
 @app.post("/api/officer/create")

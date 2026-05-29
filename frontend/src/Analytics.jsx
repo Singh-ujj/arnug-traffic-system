@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react'
-import { supabase } from './supabase.js'
 
 function Analytics() {
   const [trafficData, setTrafficData] = useState([])
@@ -7,21 +6,26 @@ function Analytics() {
 
   useEffect(() => {
     fetchData()
+    const interval = setInterval(fetchData, 60000)
+    return () => clearInterval(interval)
   }, [])
 
   useEffect(() => {
     if (trafficData.length > 0) {
-      drawCharts()
+      setTimeout(drawCharts, 100)
     }
   }, [trafficData])
 
   const fetchData = async () => {
-    const { data } = await supabase
-      .from('traffic_data')
-      .select('*')
-      .order('congestion_score', { ascending: false })
-    if (data) {
-      setTrafficData(data)
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/traffic/live`)
+      const data = await res.json()
+      if (data.data) {
+        setTrafficData(data.data)
+        setLoading(false)
+      }
+    } catch (e) {
+      console.log('Analytics fetch error:', e)
       setLoading(false)
     }
   }
@@ -60,9 +64,7 @@ function Analytics() {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false }
-        },
+        plugins: { legend: { display: false } },
         scales: {
           y: {
             beginAtZero: true, max: 100,
@@ -88,8 +90,8 @@ function Analytics() {
       data: {
         labels: trafficData.map(d => d.area.substring(0, 12)),
         datasets: [{
-          label: 'Avg Speed (km/h)',
-          data: trafficData.map(d => d.avg_speed),
+          label: 'Current Speed (km/h)',
+          data: trafficData.map(d => d.current_speed),
           borderColor: '#00E5FF',
           backgroundColor: 'rgba(0,229,255,0.1)',
           borderWidth: 2,
@@ -126,16 +128,19 @@ function Analytics() {
     canvas._chartInstance = new window.Chart(ctx, {
       type: 'doughnut',
       data: {
-        labels: ['Cars', 'Trucks', 'Buses', 'Bikes'],
+        labels: ['Critical', 'Warning', 'Low'],
         datasets: [{
-          data: [58, 21, 14, 7],
-          backgroundColor: [
-            'rgba(46,204,64,0.7)',
-            'rgba(0,229,255,0.7)',
-            'rgba(255,193,7,0.7)',
-            'rgba(139,195,74,0.7)'
+          data: [
+            trafficData.filter(d => d.severity === 'critical').length,
+            trafficData.filter(d => d.severity === 'warning').length,
+            trafficData.filter(d => d.severity === 'low').length,
           ],
-          borderColor: ['#2ECC40', '#00E5FF', '#FFC107', '#8BC34A'],
+          backgroundColor: [
+            'rgba(255,61,0,0.7)',
+            'rgba(255,193,7,0.7)',
+            'rgba(46,204,64,0.7)'
+          ],
+          borderColor: ['#FF3D00', '#FFC107', '#2ECC40'],
           borderWidth: 2
         }]
       },
@@ -161,131 +166,92 @@ function Analytics() {
     green: '#2ECC40', textDim: '#2E7D32'
   }
 
+  const avgCongestion = trafficData.length > 0
+    ? Math.round(trafficData.reduce((a, b) => a + b.congestion_score, 0) / trafficData.length)
+    : 0
+
+  const avgSpeed = trafficData.length > 0
+    ? Math.round(trafficData.reduce((a, b) => a + b.current_speed, 0) / trafficData.length)
+    : 0
+
   if (loading) return (
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       height: '400px', fontFamily: 'Share Tech Mono, monospace',
       fontSize: '12px', color: '#2ECC40', letterSpacing: '2px'
-    }}>LOADING ANALYTICS DATA...</div>
+    }}>LOADING LIVE ANALYTICS...</div>
   )
 
   return (
     <div>
       {/* Summary Cards */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: '12px', marginBottom: '20px'
-      }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '20px' }}>
         {[
-          { label: 'TOTAL VEHICLES', value: trafficData.reduce((a, b) => a + b.vehicles_count, 0).toLocaleString(), color: '#2ECC40' },
-          { label: 'AVG CONGESTION', value: Math.round(trafficData.reduce((a, b) => a + b.congestion_score, 0) / trafficData.length) + '%', color: '#FFC107' },
+          { label: 'ZONES MONITORED', value: trafficData.length, color: '#2ECC40' },
+          { label: 'AVG CONGESTION', value: avgCongestion + '%', color: '#FFC107' },
           { label: 'CRITICAL ZONES', value: trafficData.filter(d => d.severity === 'critical').length, color: '#FF3D00' },
-          { label: 'AVG SPEED', value: Math.round(trafficData.reduce((a, b) => a + b.avg_speed, 0) / trafficData.length) + ' km/h', color: '#00E5FF' }
+          { label: 'AVG SPEED', value: avgSpeed + ' km/h', color: '#00E5FF' }
         ].map((stat, i) => (
-          <div key={i} style={{
-            background: colors.card, border: `1px solid ${colors.border}`,
-            borderTop: `2px solid ${stat.color}`, padding: '14px 16px'
-          }}>
-            <div style={{
-              fontFamily: 'Share Tech Mono, monospace', fontSize: '9px',
-              color: colors.textDim, letterSpacing: '2px', marginBottom: '8px'
-            }}>{stat.label}</div>
-            <div style={{
-              fontFamily: 'Orbitron, monospace', fontSize: '24px',
-              fontWeight: '700', color: stat.color
-            }}>{stat.value}</div>
+          <div key={i} style={{ background: colors.card, border: `1px solid ${colors.border}`, borderTop: `2px solid ${stat.color}`, padding: '14px 16px' }}>
+            <div style={{ fontFamily: 'Share Tech Mono, monospace', fontSize: '9px', color: colors.textDim, letterSpacing: '2px', marginBottom: '8px' }}>{stat.label}</div>
+            <div style={{ fontFamily: 'Orbitron, monospace', fontSize: '24px', fontWeight: '700', color: stat.color }}>{stat.value}</div>
           </div>
         ))}
       </div>
 
       {/* Charts Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-
-        {/* Congestion Bar Chart */}
-        <div style={{
-          background: colors.card, border: `1px solid ${colors.border}`,
-          padding: '16px'
-        }}>
-          <div style={{
-            fontFamily: 'Share Tech Mono, monospace', fontSize: '10px',
-            color: colors.green, letterSpacing: '2px', marginBottom: '12px'
-          }}>📊 CONGESTION SCORE BY AREA</div>
+        <div style={{ background: colors.card, border: `1px solid ${colors.border}`, padding: '16px' }}>
+          <div style={{ fontFamily: 'Share Tech Mono, monospace', fontSize: '10px', color: colors.green, letterSpacing: '2px', marginBottom: '12px' }}>
+            📊 CONGESTION SCORE — LIVE TOMTOM
+          </div>
           <div style={{ position: 'relative', height: '220px' }}>
-            <canvas id="congestionChart" role="img" aria-label="Congestion scores by area"></canvas>
+            <canvas id="congestionChart"></canvas>
           </div>
         </div>
 
-        {/* Speed Line Chart */}
-        <div style={{
-          background: colors.card, border: `1px solid ${colors.border}`,
-          padding: '16px'
-        }}>
-          <div style={{
-            fontFamily: 'Share Tech Mono, monospace', fontSize: '10px',
-            color: '#00E5FF', letterSpacing: '2px', marginBottom: '12px'
-          }}>📈 AVERAGE SPEED BY AREA (KM/H)</div>
+        <div style={{ background: colors.card, border: `1px solid ${colors.border}`, padding: '16px' }}>
+          <div style={{ fontFamily: 'Share Tech Mono, monospace', fontSize: '10px', color: '#00E5FF', letterSpacing: '2px', marginBottom: '12px' }}>
+            📈 CURRENT SPEED BY ZONE (KM/H)
+          </div>
           <div style={{ position: 'relative', height: '220px' }}>
-            <canvas id="speedChart" role="img" aria-label="Average speed by area"></canvas>
+            <canvas id="speedChart"></canvas>
           </div>
         </div>
       </div>
 
-      {/* Vehicle + Table */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '16px' }}>
-
-        {/* Donut Chart */}
-        <div style={{
-          background: colors.card, border: `1px solid ${colors.border}`,
-          padding: '16px'
-        }}>
-          <div style={{
-            fontFamily: 'Share Tech Mono, monospace', fontSize: '10px',
-            color: colors.green, letterSpacing: '2px', marginBottom: '12px'
-          }}>🥧 VEHICLE TYPE BREAKDOWN</div>
+        <div style={{ background: colors.card, border: `1px solid ${colors.border}`, padding: '16px' }}>
+          <div style={{ fontFamily: 'Share Tech Mono, monospace', fontSize: '10px', color: colors.green, letterSpacing: '2px', marginBottom: '12px' }}>
+            🥧 SEVERITY DISTRIBUTION
+          </div>
           <div style={{ position: 'relative', height: '200px' }}>
-            <canvas id="vehicleChart" role="img" aria-label="Vehicle type distribution"></canvas>
+            <canvas id="vehicleChart"></canvas>
           </div>
         </div>
 
-        {/* Data Table */}
-        <div style={{
-          background: colors.card, border: `1px solid ${colors.border}`,
-          padding: '16px'
-        }}>
-          <div style={{
-            fontFamily: 'Share Tech Mono, monospace', fontSize: '10px',
-            color: colors.green, letterSpacing: '2px', marginBottom: '12px'
-          }}>📋 DETAILED TRAFFIC DATA</div>
+        <div style={{ background: colors.card, border: `1px solid ${colors.border}`, padding: '16px' }}>
+          <div style={{ fontFamily: 'Share Tech Mono, monospace', fontSize: '10px', color: colors.green, letterSpacing: '2px', marginBottom: '12px' }}>
+            📋 LIVE TRAFFIC DATA — ALL ZONES
+            <span style={{ marginLeft: '12px', fontSize: '9px', padding: '2px 8px', background: 'rgba(46,204,64,0.1)', border: '1px solid #2ECC40', borderRadius: '2px' }}>AUTO REFRESH 60s</span>
+          </div>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
             <thead>
               <tr>
-                {['AREA', 'VEHICLES', 'SPEED', 'SCORE', 'STATUS'].map(h => (
-                  <th key={h} style={{
-                    fontFamily: 'Share Tech Mono, monospace', fontSize: '9px',
-                    color: colors.textDim, letterSpacing: '1px',
-                    padding: '6px 8px', textAlign: 'left',
-                    borderBottom: `1px solid ${colors.border}`
-                  }}>{h}</th>
+                {['AREA', 'SPEED', 'FREE FLOW', 'CONGESTION', 'STATUS'].map(h => (
+                  <th key={h} style={{ fontFamily: 'Share Tech Mono, monospace', fontSize: '9px', color: colors.textDim, letterSpacing: '1px', padding: '6px 8px', textAlign: 'left', borderBottom: `1px solid ${colors.border}` }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {trafficData.map(zone => (
-                <tr key={zone.id}>
+              {trafficData.map((zone, i) => (
+                <tr key={i}>
                   <td style={{ padding: '8px', color: '#C8E6C9', fontSize: '12px' }}>{zone.area}</td>
-                  <td style={{ padding: '8px', color: '#C8E6C9' }}>{zone.vehicles_count}</td>
-                  <td style={{ padding: '8px', color: '#00E5FF' }}>{zone.avg_speed} km/h</td>
-                  <td style={{ padding: '8px', fontFamily: 'Orbitron, monospace', fontSize: '11px',
-                    color: zone.severity === 'critical' ? '#FF3D00' : zone.severity === 'warning' ? '#FFC107' : '#2ECC40'
-                  }}>{zone.congestion_score}%</td>
+                  <td style={{ padding: '8px', color: '#00E5FF' }}>{zone.current_speed} km/h</td>
+                  <td style={{ padding: '8px', color: '#2ECC40' }}>{zone.free_flow_speed} km/h</td>
+                  <td style={{ padding: '8px', fontFamily: 'Orbitron, monospace', fontSize: '11px', color: zone.severity === 'critical' ? '#FF3D00' : zone.severity === 'warning' ? '#FFC107' : '#2ECC40' }}>{zone.congestion_score}%</td>
                   <td style={{ padding: '8px' }}>
-                    <span style={{
-                      fontFamily: 'Share Tech Mono, monospace', fontSize: '9px',
-                      padding: '2px 6px', borderRadius: '2px',
-                      background: zone.severity === 'critical' ? 'rgba(255,61,0,0.1)' : zone.severity === 'warning' ? 'rgba(255,193,7,0.1)' : 'rgba(46,204,64,0.1)',
-                      border: `1px solid ${zone.severity === 'critical' ? '#FF3D00' : zone.severity === 'warning' ? '#FFC107' : '#2ECC40'}`,
-                      color: zone.severity === 'critical' ? '#FF3D00' : zone.severity === 'warning' ? '#FFC107' : '#2ECC40'
-                    }}>{zone.severity?.toUpperCase()}</span>
+                    <span style={{ fontFamily: 'Share Tech Mono, monospace', fontSize: '9px', padding: '2px 6px', borderRadius: '2px', background: zone.severity === 'critical' ? 'rgba(255,61,0,0.1)' : zone.severity === 'warning' ? 'rgba(255,193,7,0.1)' : 'rgba(46,204,64,0.1)', border: `1px solid ${zone.severity === 'critical' ? '#FF3D00' : zone.severity === 'warning' ? '#FFC107' : '#2ECC40'}`, color: zone.severity === 'critical' ? '#FF3D00' : zone.severity === 'warning' ? '#FFC107' : '#2ECC40' }}>{zone.severity?.toUpperCase()}</span>
                   </td>
                 </tr>
               ))}

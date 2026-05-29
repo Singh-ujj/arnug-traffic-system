@@ -18,7 +18,7 @@ function AlertsPanel() {
 
   const fetchAlerts = async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/alerts/live')
+      const res = await fetch('${import.meta.env.VITE_API_URL}/api/alerts/live')
       const data = await res.json()
       if (data.alerts) setAlerts(data.alerts)
     } catch (e) {

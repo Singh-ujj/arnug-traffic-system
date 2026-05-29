@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { supabase } from '../supabase.js'
 
 function LoginPage({ setUser, setUserType }) {
   const [hoveredSide, setHoveredSide] = useState(null)
@@ -15,12 +16,13 @@ function LoginPage({ setUser, setUserType }) {
     window.location.href = '/gov-login'
   }
 
-  const handleCitizenClick = () => {
-    const user = { name: 'Citizen User', email: 'citizen@arnug.in' }
-    localStorage.setItem('arnug_user', JSON.stringify(user))
-    localStorage.setItem('arnug_type', 'citizen')
-    setUser(user)
-    setUserType('citizen')
+  const handleCitizenClick = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`
+      }
+    })
   }
 
   return (
@@ -93,7 +95,6 @@ function LoginPage({ setUser, setUserType }) {
           borderRight: '1px solid rgba(46,204,64,0.2)'
         }}
       >
-        {/* Grid overlay */}
         <div style={{
           position: 'absolute', inset: 0,
           backgroundImage: `
@@ -104,14 +105,12 @@ function LoginPage({ setUser, setUserType }) {
           pointerEvents: 'none'
         }} />
 
-        {/* 3D Government Icon */}
         <div style={{
           width: '180px', height: '180px',
           position: 'relative',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           marginBottom: '30px'
         }}>
-          {/* Rotating rings */}
           {[1,2,3].map(i => (
             <div key={i} style={{
               position: 'absolute',
@@ -122,7 +121,6 @@ function LoginPage({ setUser, setUserType }) {
               animation: `rotate${i % 2 === 0 ? 'Rev' : ''} ${3 + i}s linear infinite`
             }} />
           ))}
-          {/* Shield Icon */}
           <div style={{
             width: '90px', height: '100px',
             background: 'linear-gradient(135deg, rgba(46,204,64,0.3), rgba(46,204,64,0.1))',
@@ -166,7 +164,6 @@ function LoginPage({ setUser, setUserType }) {
           </div>
         )}
 
-        {/* Corner decorations */}
         {[
           { top: 20, left: 20, borderWidth: '2px 0 0 2px' },
           { top: 20, right: 20, borderWidth: '2px 2px 0 0' },
@@ -200,7 +197,6 @@ function LoginPage({ setUser, setUserType }) {
           transition: 'background 0.4s'
         }}
       >
-        {/* Grid overlay */}
         <div style={{
           position: 'absolute', inset: 0,
           backgroundImage: `
@@ -211,14 +207,12 @@ function LoginPage({ setUser, setUserType }) {
           pointerEvents: 'none'
         }} />
 
-        {/* 3D Citizen Icon */}
         <div style={{
           width: '180px', height: '180px',
           position: 'relative',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           marginBottom: '30px'
         }}>
-          {/* Rotating rings */}
           {[1,2,3].map(i => (
             <div key={i} style={{
               position: 'absolute',
@@ -229,7 +223,6 @@ function LoginPage({ setUser, setUserType }) {
               animation: `rotate${i % 2 === 0 ? '' : 'Rev'} ${3 + i}s linear infinite`
             }} />
           ))}
-          {/* Ashoka Chakra style */}
           <div style={{
             width: '90px', height: '90px',
             background: 'linear-gradient(135deg, rgba(255,153,0,0.3), rgba(19,136,8,0.3))',
@@ -269,11 +262,10 @@ function LoginPage({ setUser, setUserType }) {
             letterSpacing: '3px',
             animation: 'fadeIn 0.3s ease-in'
           }}>
-            [ CLICK ANYWHERE TO ENTER ]
+            [ CLICK TO SIGN IN WITH GOOGLE ]
           </div>
         )}
 
-        {/* Corner decorations */}
         {[
           { top: 20, left: 20, borderWidth: '2px 0 0 2px' },
           { top: 20, right: 20, borderWidth: '2px 2px 0 0' },

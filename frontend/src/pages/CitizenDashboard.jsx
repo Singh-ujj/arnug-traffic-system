@@ -27,7 +27,7 @@ function CitizenDashboard({ user, setUser }) {
 
   const fetchAlerts = async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/alerts/live')
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/alerts/live`)
       const data = await res.json()
       if (data.alerts) setLiveAlerts(data.alerts)
     } catch (e) {}
@@ -35,7 +35,7 @@ function CitizenDashboard({ user, setUser }) {
 
   const fetchAreas = async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/areas')
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/areas`)
       const data = await res.json()
       if (data.areas) setAreas(data.areas)
     } catch (e) {
@@ -48,7 +48,7 @@ function CitizenDashboard({ user, setUser }) {
     setLoadingRoute(true)
     setRoutes([])
     try {
-      const res = await fetch('http://localhost:8000/api/routes/suggest', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/routes/suggest`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ origin, destination })
@@ -110,7 +110,6 @@ function CitizenDashboard({ user, setUser }) {
   return (
     <div style={{ width: '100vw', height: '100vh', background: colors.bg, fontFamily: 'Rajdhani, sans-serif', color: colors.text, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
-      {/* TOP BAR — Tiranga Style */}
       <div style={{ height: '56px', background: `linear-gradient(90deg, #FF9933 0%, #FF9933 33%, #FFFFFF 33%, #FFFFFF 66%, #138808 66%, #138808 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', flexShrink: 0, position: 'relative' }}>
         <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.75)', pointerEvents: 'none' }} />
         <div style={{ fontFamily: 'Orbitron, monospace', fontSize: '18px', fontWeight: '900', color: colors.saffron, letterSpacing: '3px', display: 'flex', alignItems: 'center', gap: '10px', zIndex: 1 }}>
@@ -128,11 +127,9 @@ function CitizenDashboard({ user, setUser }) {
         </div>
       </div>
 
-      {/* Tiranga Strip */}
       <div style={{ height: '3px', background: 'linear-gradient(90deg, #FF9933, #FFFFFF, #138808)', flexShrink: 0 }} />
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        {/* SIDEBAR */}
         <div style={{ width: '180px', background: colors.panel, borderRight: `1px solid ${colors.borderGreen}`, display: 'flex', flexDirection: 'column', padding: '16px 0', flexShrink: 0, overflowY: 'auto' }}>
           {tabs.map(tab => (
             <div key={tab.id} onClick={() => setActiveTab(tab.id)} style={{ padding: '11px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', background: activeTab === tab.id ? (tab.id === 'sos' ? 'rgba(255,61,0,0.15)' : 'rgba(255,153,51,0.1)') : 'transparent', borderLeft: activeTab === tab.id ? `3px solid ${tab.id === 'sos' ? colors.red : colors.saffron}` : '3px solid transparent', color: activeTab === tab.id ? (tab.id === 'sos' ? colors.red : colors.saffron) : colors.textDim, fontSize: '13px', fontWeight: '600', letterSpacing: '1px', transition: 'all 0.2s' }}>
@@ -141,13 +138,10 @@ function CitizenDashboard({ user, setUser }) {
           ))}
         </div>
 
-        {/* MAIN CONTENT */}
         <div style={{ flex: 1, overflow: 'auto', padding: '20px' }}>
 
-          {/* HOME TAB */}
           {activeTab === 'home' && (
             <div>
-              {/* Welcome */}
               <div style={{ background: colors.card, border: `1px solid ${colors.border}`, borderTop: `2px solid ${colors.saffron}`, padding: '16px', marginBottom: '16px' }}>
                 <div style={{ fontFamily: 'Orbitron, monospace', fontSize: '14px', color: colors.saffron, letterSpacing: '2px' }}>
                   NAMASTE, {user?.name?.toUpperCase() || 'CITIZEN'} 🙏
@@ -157,7 +151,6 @@ function CitizenDashboard({ user, setUser }) {
                 </div>
               </div>
 
-              {/* Quick Stats */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '16px' }}>
                 {[
                   { label: 'ACTIVE ALERTS', value: liveAlerts.length, sub: 'Live TomTom data', color: liveAlerts.length > 3 ? colors.red : colors.amber },
@@ -172,7 +165,6 @@ function CitizenDashboard({ user, setUser }) {
                 ))}
               </div>
 
-              {/* Live Alerts Preview */}
               <div style={{ background: colors.card, border: `1px solid ${colors.border}`, padding: '16px', marginBottom: '16px' }}>
                 <div style={{ fontFamily: 'Share Tech Mono, monospace', fontSize: '10px', color: colors.saffron, letterSpacing: '2px', marginBottom: '12px' }}>🔔 LIVE TRAFFIC ALERTS</div>
                 {liveAlerts.length === 0 ? (
@@ -191,7 +183,6 @@ function CitizenDashboard({ user, setUser }) {
             </div>
           )}
 
-          {/* ALERTS TAB */}
           {activeTab === 'alerts' && (
             <div>
               <div style={{ fontFamily: 'Share Tech Mono, monospace', fontSize: '10px', color: colors.saffron, letterSpacing: '2px', marginBottom: '16px' }}>
@@ -217,7 +208,6 @@ function CitizenDashboard({ user, setUser }) {
             </div>
           )}
 
-          {/* ROUTES TAB */}
           {activeTab === 'routes' && (
             <div>
               <div style={{ fontFamily: 'Share Tech Mono, monospace', fontSize: '10px', color: colors.saffron, letterSpacing: '2px', marginBottom: '16px' }}>🛣️ AI ROUTE FINDER — A* + TOMTOM LIVE</div>
@@ -267,7 +257,6 @@ function CitizenDashboard({ user, setUser }) {
             </div>
           )}
 
-          {/* REPORT TAB */}
           {activeTab === 'report' && (
             <div>
               <div style={{ fontFamily: 'Share Tech Mono, monospace', fontSize: '10px', color: colors.saffron, letterSpacing: '2px', marginBottom: '16px' }}>📢 REPORT TRAFFIC ISSUE</div>
@@ -305,7 +294,6 @@ function CitizenDashboard({ user, setUser }) {
             </div>
           )}
 
-          {/* PARKING TAB */}
           {activeTab === 'parking' && (
             <div>
               <div style={{ fontFamily: 'Share Tech Mono, monospace', fontSize: '10px', color: colors.saffron, letterSpacing: '2px', marginBottom: '16px' }}>🅿️ NEARBY PARKING — BANGALORE IT HUB</div>
@@ -333,7 +321,6 @@ function CitizenDashboard({ user, setUser }) {
             </div>
           )}
 
-          {/* SOS TAB */}
           {activeTab === 'sos' && (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', gap: '20px' }}>
               <div style={{ fontFamily: 'Orbitron, monospace', fontSize: '16px', color: colors.red, letterSpacing: '4px' }}>EMERGENCY SOS</div>

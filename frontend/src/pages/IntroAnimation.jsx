@@ -2,12 +2,11 @@ import React, { useEffect, useState } from 'react'
 
 function IntroAnimation({ onComplete }) {
   const [phase, setPhase] = useState(1)
-  const [wink, setWink] = useState(false)
 
   useEffect(() => {
     const t1 = setTimeout(() => setPhase(2), 2000)
     const t2 = setTimeout(() => setPhase(3), 4000)
-    const t3 = setTimeout(() => setWink(true), 5500)
+    const t3 = setTimeout(() => setPhase(4), 5500)
     const t4 = setTimeout(() => onComplete(), 7000)
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4) }
   }, [])
@@ -21,163 +20,233 @@ function IntroAnimation({ onComplete }) {
     }}>
 
       {/* Stars */}
-      {[...Array(100)].map((_, i) => (
+      {[...Array(120)].map((_, i) => (
         <div key={i} style={{
           position: 'absolute',
-          width: Math.random() * 3 + 1 + 'px',
-          height: Math.random() * 3 + 1 + 'px',
+          width: Math.random() * 2 + 1 + 'px',
+          height: Math.random() * 2 + 1 + 'px',
           background: 'white', borderRadius: '50%',
           left: Math.random() * 100 + '%',
           top: Math.random() * 100 + '%',
-          opacity: Math.random(),
+          opacity: Math.random() * 0.8 + 0.2,
           animation: `twinkle ${Math.random() * 3 + 1}s infinite alternate`
         }} />
       ))}
 
-      {/* Earth */}
+      {/* Grid Lines — satellite scan effect */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        backgroundImage: 'linear-gradient(rgba(46,204,64,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(46,204,64,0.03) 1px, transparent 1px)',
+        backgroundSize: '50px 50px',
+        animation: 'gridScroll 20s linear infinite'
+      }} />
+
+      {/* Scan Line */}
+      <div style={{
+        position: 'absolute', left: 0, right: 0,
+        height: '2px',
+        background: 'linear-gradient(90deg, transparent, rgba(46,204,64,0.8), transparent)',
+        animation: 'scanLine 3s linear infinite',
+        zIndex: 5
+      }} />
+
+      {/* Earth — Phase 1 & 2 */}
       <div style={{
         position: 'absolute',
-        width: phase === 1 ? '300px' : phase === 2 ? '200px' : '80px',
-        height: phase === 1 ? '300px' : phase === 2 ? '200px' : '80px',
+        width: phase <= 2 ? '320px' : '60px',
+        height: phase <= 2 ? '320px' : '60px',
         borderRadius: '50%',
-        background: 'radial-gradient(circle at 35% 35%, #4CAF50, #1565C0, #0D47A1)',
-        boxShadow: '0 0 40px rgba(76,175,80,0.5), inset -20px -10px 40px rgba(0,0,0,0.5)',
+        background: 'radial-gradient(circle at 35% 35%, #1a6b3a, #1565C0, #0D47A1)',
+        boxShadow: '0 0 60px rgba(21,101,192,0.6), inset -20px -10px 40px rgba(0,0,0,0.6)',
         transition: 'all 2s ease-in-out',
-        left: '50%', top: '50%',
-        transform: 'translate(-50%, -50%)'
+        left: phase <= 2 ? '50%' : '85%',
+        top: phase <= 2 ? '50%' : '15%',
+        transform: phase <= 2 ? 'translate(-50%, -50%)' : 'translate(-50%, -50%)',
+        zIndex: 2
       }}>
-        <div style={{
-          position: 'absolute', width: '60px', height: '40px',
-          background: 'rgba(76,175,80,0.8)', borderRadius: '50%',
-          top: '30%', left: '20%'
-        }} />
-        <div style={{
-          position: 'absolute', width: '40px', height: '60px',
-          background: 'rgba(76,175,80,0.8)', borderRadius: '50%',
-          top: '20%', left: '55%'
-        }} />
+        {/* Continents */}
+        <div style={{ position: 'absolute', width: '80px', height: '50px', background: 'rgba(46,160,64,0.7)', borderRadius: '40% 60% 50% 60%', top: '25%', left: '15%' }} />
+        <div style={{ position: 'absolute', width: '50px', height: '70px', background: 'rgba(46,160,64,0.7)', borderRadius: '50% 40% 60% 40%', top: '20%', left: '55%' }} />
+        <div style={{ position: 'absolute', width: '60px', height: '40px', background: 'rgba(46,160,64,0.6)', borderRadius: '50%', top: '55%', left: '35%' }} />
+        {/* Atmosphere glow */}
+        <div style={{ position: 'absolute', inset: '-8px', borderRadius: '50%', border: '8px solid rgba(100,180,255,0.15)', boxShadow: '0 0 30px rgba(100,180,255,0.2)' }} />
+        {/* Bangalore marker */}
+        {phase === 2 && (
+          <div style={{
+            position: 'absolute', top: '38%', left: '58%',
+            width: '8px', height: '8px',
+            background: '#FF3D00', borderRadius: '50%',
+            boxShadow: '0 0 12px rgba(255,61,0,0.9)',
+            animation: 'ping 1s infinite'
+          }} />
+        )}
       </div>
 
-      {/* Rocket + Cartoon */}
-      <div style={{
-        position: 'absolute',
-        left: '50%', top: '50%',
-        transform: `translate(-50%, -50%) scale(${phase === 1 ? 0.3 : phase === 2 ? 0.7 : 1.4})`,
-        transition: 'all 2s ease-in-out',
-        display: 'flex', flexDirection: 'column', alignItems: 'center',
-        zIndex: 10
-      }}>
-
-        {/* Cartoon HEAD popping out of rocket */}
-        <div style={{ position: 'relative', display: 'inline-block', textAlign: 'center' }}>
-
-          {/* HEAD */}
+      {/* Satellite orbit ring */}
+      {phase >= 2 && (
+        <div style={{
+          position: 'absolute',
+          width: phase === 2 ? '420px' : '80px',
+          height: phase === 2 ? '420px' : '80px',
+          borderRadius: '50%',
+          border: '1px dashed rgba(46,204,64,0.3)',
+          left: phase === 2 ? '50%' : '85%',
+          top: phase === 2 ? '50%' : '15%',
+          transform: 'translate(-50%, -50%)',
+          transition: 'all 2s ease-in-out',
+          zIndex: 3,
+          animation: 'orbitSpin 8s linear infinite'
+        }}>
+          {/* Satellite */}
           <div style={{
-            width: '80px', height: '80px',
-            background: 'radial-gradient(circle, #FFD700, #FFA000)',
-            borderRadius: '50%',
-            border: '3px solid #FF8F00',
-            boxShadow: '0 0 20px rgba(255,215,0,0.6)',
-            position: 'relative',
-            zIndex: 2,
-            marginBottom: '-20px',
-            marginLeft: 'auto',
-            marginRight: 'auto'
+            position: 'absolute', top: '-12px', left: '50%',
+            transform: 'translateX(-50%)',
+            fontSize: '22px',
+            filter: 'drop-shadow(0 0 8px rgba(46,204,64,0.8))'
+          }}>🛰️</div>
+        </div>
+      )}
+
+      {/* Center Content — Phase 3 & 4 */}
+      {phase >= 3 && (
+        <div style={{
+          position: 'absolute',
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          gap: '16px',
+          animation: 'fadeInUp 1s ease-out',
+          zIndex: 10
+        }}>
+          {/* Logo */}
+          <div style={{
+            fontFamily: 'Orbitron, monospace',
+            fontSize: '52px', fontWeight: '900',
+            color: '#2ECC40',
+            letterSpacing: '12px',
+            textShadow: '0 0 30px rgba(46,204,64,0.8), 0 0 60px rgba(46,204,64,0.4)',
+            animation: 'glowPulse 2s infinite alternate'
+          }}>ARNUG</div>
+
+          {/* Tagline */}
+          <div style={{
+            fontFamily: 'Share Tech Mono, monospace',
+            fontSize: '13px',
+            color: 'rgba(46,204,64,0.7)',
+            letterSpacing: '6px',
+            textAlign: 'center'
+          }}>AI TRAFFIC ANALYSIS & MANAGEMENT</div>
+
+          {/* Divider */}
+          <div style={{
+            width: '300px', height: '1px',
+            background: 'linear-gradient(90deg, transparent, #2ECC40, transparent)',
+            margin: '8px 0'
+          }} />
+
+          {/* Stats row */}
+          {phase === 4 && (
+            <div style={{
+              display: 'flex', gap: '32px',
+              animation: 'fadeInUp 0.8s ease-out'
+            }}>
+              {[
+                { value: '10', label: 'ZONES' },
+                { value: 'A*', label: 'ALGORITHM' },
+                { value: 'LIVE', label: 'TOMTOM' },
+                { value: 'FCN', label: 'AI MODEL' },
+              ].map((item, i) => (
+                <div key={i} style={{ textAlign: 'center' }}>
+                  <div style={{
+                    fontFamily: 'Orbitron, monospace',
+                    fontSize: '20px', fontWeight: '700',
+                    color: '#2ECC40',
+                    textShadow: '0 0 10px rgba(46,204,64,0.6)'
+                  }}>{item.value}</div>
+                  <div style={{
+                    fontFamily: 'Share Tech Mono, monospace',
+                    fontSize: '9px', color: 'rgba(46,204,64,0.5)',
+                    letterSpacing: '2px', marginTop: '4px'
+                  }}>{item.label}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Loading bar */}
+          <div style={{
+            width: '300px', height: '2px',
+            background: 'rgba(46,204,64,0.15)',
+            borderRadius: '2px', marginTop: '8px',
+            overflow: 'hidden'
           }}>
-            {/* Left Ear */}
             <div style={{
-              position: 'absolute', top: '10%', left: '-14%',
-              width: '24px', height: '34px',
-              background: '#FFD700', borderRadius: '50%',
-              border: '3px solid #FF8F00'
-            }} />
-            {/* Right Ear */}
-            <div style={{
-              position: 'absolute', top: '10%', right: '-14%',
-              width: '24px', height: '34px',
-              background: '#FFD700', borderRadius: '50%',
-              border: '3px solid #FF8F00'
-            }} />
-            {/* Left Eye — wink karta hai */}
-            <div style={{
-              position: 'absolute', top: '32%', left: '18%',
-              width: '16px',
-              height: wink ? '3px' : '16px',
-              background: '#1A1A1A',
-              borderRadius: wink ? '2px' : '50%',
-              transition: 'height 0.3s'
-            }} />
-            {/* Right Eye */}
-            <div style={{
-              position: 'absolute', top: '32%', right: '18%',
-              width: '16px', height: '16px',
-              background: '#1A1A1A', borderRadius: '50%'
-            }} />
-            {/* Nose */}
-            <div style={{
-              position: 'absolute', top: '52%', left: '50%',
-              transform: 'translateX(-50%)',
-              width: '8px', height: '6px',
-              background: '#FF6F00', borderRadius: '50%'
-            }} />
-            {/* Smile */}
-            <div style={{
-              position: 'absolute', bottom: '18%', left: '20%',
-              width: '60%', height: '16px',
-              borderBottom: '3px solid #1A1A1A',
-              borderRadius: '0 0 30px 30px'
+              height: '100%',
+              background: 'linear-gradient(90deg, #2ECC40, #00E5FF)',
+              borderRadius: '2px',
+              animation: 'loadBar 1.5s ease-out forwards'
             }} />
           </div>
 
-          {/* ROCKET — head ke bilkul neeche */}
           <div style={{
-            fontSize: '90px',
-            lineHeight: 1,
-            filter: 'drop-shadow(0 0 15px rgba(255,100,0,0.8))',
-            animation: 'rocketFloat 2s ease-in-out infinite alternate'
-          }}>🚀</div>
-
-          {/* Rocket flame */}
-          {phase === 3 && (
-            <div style={{
-              fontSize: '40px',
-              marginTop: '-20px',
-              animation: 'flameFlicker 0.3s infinite alternate'
-            }}>🔥</div>
-          )}
-        </div>
-      </div>
-
-      {/* ARNUG Text */}
-      {phase === 3 && (
-        <div style={{
-          position: 'absolute', bottom: '15%',
-          fontFamily: 'Orbitron, monospace',
-          fontSize: '28px', fontWeight: '900',
-          color: '#2ECC40', letterSpacing: '8px',
-          textShadow: '0 0 20px rgba(46,204,64,0.8)',
-          animation: 'fadeIn 1s ease-in'
-        }}>
-          ARNUG.IN
+            fontFamily: 'Share Tech Mono, monospace',
+            fontSize: '10px', color: 'rgba(46,204,64,0.5)',
+            letterSpacing: '3px'
+          }}>INITIALIZING SYSTEM...</div>
         </div>
       )}
+
+      {/* Corner HUD elements */}
+      <div style={{ position: 'absolute', top: '20px', left: '20px', fontFamily: 'Share Tech Mono, monospace', fontSize: '10px', color: 'rgba(46,204,64,0.4)', letterSpacing: '2px' }}>
+        SYS://ARNUG.IN<br/>
+        <span style={{ color: 'rgba(46,204,64,0.25)' }}>LAT: 12.9716° N</span><br/>
+        <span style={{ color: 'rgba(46,204,64,0.25)' }}>LNG: 77.5946° E</span>
+      </div>
+      <div style={{ position: 'absolute', top: '20px', right: '20px', fontFamily: 'Share Tech Mono, monospace', fontSize: '10px', color: 'rgba(46,204,64,0.4)', letterSpacing: '2px', textAlign: 'right' }}>
+        BANGALORE, IN<br/>
+        <span style={{ color: 'rgba(46,204,64,0.25)' }}>STATUS: ACTIVE</span><br/>
+        <span style={{ color: 'rgba(46,204,64,0.25)' }}>SATELLITE: ONLINE</span>
+      </div>
+      <div style={{ position: 'absolute', bottom: '20px', left: '20px', fontFamily: 'Share Tech Mono, monospace', fontSize: '10px', color: 'rgba(46,204,64,0.4)', letterSpacing: '2px' }}>
+        RV COLLEGE OF ENGINEERING<br/>
+        <span style={{ color: 'rgba(46,204,64,0.25)' }}>M.TECH CNE — 2025-26</span>
+      </div>
+      <div style={{ position: 'absolute', bottom: '20px', right: '20px', fontFamily: 'Share Tech Mono, monospace', fontSize: '10px', color: 'rgba(46,204,64,0.4)', letterSpacing: '2px', textAlign: 'right' }}>
+        UJJWAL KUMAR<br/>
+        <span style={{ color: 'rgba(46,204,64,0.25)' }}>1RV24SCN15</span>
+      </div>
 
       <style>{`
         @keyframes twinkle {
           from { opacity: 0.2; }
           to { opacity: 1; }
         }
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(20px); }
+        @keyframes scanLine {
+          from { top: 0; }
+          to { top: 100%; }
+        }
+        @keyframes gridScroll {
+          from { backgroundPosition: 0 0; }
+          to { backgroundPosition: 50px 50px; }
+        }
+        @keyframes orbitSpin {
+          from { transform: translate(-50%, -50%) rotate(0deg); }
+          to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        @keyframes ping {
+          0% { box-shadow: 0 0 0 0 rgba(255,61,0,0.8); }
+          100% { box-shadow: 0 0 0 12px rgba(255,61,0,0); }
+        }
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(30px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        @keyframes rocketFloat {
-          from { transform: translateY(0px); }
-          to { transform: translateY(-10px); }
+        @keyframes glowPulse {
+          from { text-shadow: 0 0 20px rgba(46,204,64,0.6); }
+          to { text-shadow: 0 0 40px rgba(46,204,64,1), 0 0 80px rgba(46,204,64,0.4); }
         }
-        @keyframes flameFlicker {
-          from { transform: scale(1); opacity: 1; }
-          to { transform: scale(1.2); opacity: 0.8; }
+        @keyframes loadBar {
+          from { width: 0%; }
+          to { width: 100%; }
         }
       `}</style>
     </div>
